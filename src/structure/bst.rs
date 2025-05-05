@@ -219,4 +219,74 @@ impl BstNode {
             Some(x) => Some(x.upgrade().unwrap()),
         }
     }
+
+    pub fn tree_insert(root: &Rc<RefCell<BstNode>>, key: i32) -> Rc<RefCell<BstNode>> {
+        let new_node = BstNode::new(key);
+        let mut y: Option<Rc<RefCell<BstNode>>> = None;
+        let mut x = root.clone();
+
+        while let Some(node) = x.borrow().left.clone().or_else(|| x.borrow().right.clone()) {
+            y = Some(x.clone());
+            if key < node.borrow().key {
+                x = node.borrow().left.clone();
+            } else {
+                x = node.borrow().right.clone();
+            }
+        }
+
+        if let Some(parent) = y {
+            if key < parent.borrow().key {
+                parent.borrow_mut().left = Some(new_node.clone());
+            } else {
+                parent.borrow_mut().right = Some(new_node.clone());
+            }
+            new_node.borrow_mut().parent = Some(std::rc::Weak::new());
+        }
+
+        new_node
+    }
+
+    pub fn transplant(root: &Rc<RefCell<BstNode>>, u: &Rc<RefCell<BstNode>>, v: &Option<Rc<RefCell<BstNode>>>) {
+        if let Some(parent_weak) = &u.borrow().parent {
+            if let Some(parent) = parent_weak.upgrade() {
+                if Rc::ptr_eq(&u, &parent.borrow().left.as_ref().unwrap()) {
+                    parent.borrow_mut().left = v.clone();
+                } else {
+                    parent.borrow_mut().right = v.clone();
+                }
+                if let Some(v_node) = v {
+                    v_node.borrow_mut().parent = Some(std::rc::Weak::new());
+                }
+            }
+        } else {
+            if let Some(v_node) = v {
+                v_node.borrow_mut().parent = None;
+            }
+            *root.borrow_mut() = v.clone().unwrap().borrow().clone();
+        }
+    }
+
+    pub fn tree_delete(root: &Rc<RefCell<BstNode>>, z: &Rc<RefCell<BstNode>>) {
+        if z.borrow().left.is_none() {
+            BstNode::transplant(root, z, &z.borrow().right);
+        } else if z.borrow().right.is_none() {
+            BstNode::transplant(root, z, &z.borrow().left);
+        } else {
+            let y = BstNode::minimum(&z.borrow().right.as_ref().unwrap());
+            if y.borrow().parent.as_ref().unwrap().upgrade().unwrap().as_ptr()
+                != z.borrow().as_ptr()
+            {
+                BstNode::transplant(root, &y, &y.borrow().right);
+                y.borrow_mut().right = z.borrow().right.clone();
+                if let Some(right) = &y.borrow().right {
+                    right.borrow_mut().parent = Some(std::rc::Weak::new());
+                }
+            }
+            BstNode::transplant(root, z, &y);
+            y.borrow_mut().left = z.borrow().left.clone();
+            if let Some(left) = &y.borrow().left {
+                left.borrow_mut().parent = Some(std::rc::Weak::new());
+            }
+        }
+    }
 }
