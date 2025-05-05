@@ -112,6 +112,30 @@ fn test_binary_search_tree(){
             println!("node with key of {} does not exist, failed to get successor", key)
         }
     }
+
+    println!("\ntest tree_insert");
+    let inserted_node = BstNode::tree_insert(&rootlink, 8);
+    println!(
+        "Inserted node with key {}",
+        inserted_node.borrow().key
+    );
+
+    println!("\ntest transplant");
+    let new_node = BstNode::new(99);
+    let old_node = rootlink.borrow().tree_search(&8).unwrap(); 
+    BstNode::transplant(&rootlink, &old_node, &Some(new_node.clone()));
+    println!(
+        "Transplanted node with key 8 with new node key {}",
+        new_node.borrow().key
+    );
+
+    println!("\ntest tree_delete");
+    let del_node = rootlink.borrow().tree_search(&7).unwrap();
+    BstNode::tree_delete(&rootlink, &del_node);
+    println!("Deleted node with key 7");
+
+    let updated_tree_path = "bst_updated.dot";
+    generate_dotfile_bst(&rootlink, updated_tree_path);
 }
 
 #[allow(dead_code)]
